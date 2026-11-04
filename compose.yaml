@@ -1,0 +1,57 @@
+# One service per ROS distro. Both share the sources and datasets but have their own
+# image and their own build/install/log volumes, so switching distro never mixes builds.
+# Used by the devcontainers (.devcontainer/<distro>/devcontainer.json) and the Makefile.
+name: ros_container
+
+x-ros: &ros
+  command: sleep infinity
+  init: true
+  ports:
+    - "8765:8765"   # Foxglove bridge
+
+services:
+  jazzy:
+    <<: *ros
+    image: ros_container:jazzy
+    build:
+      context: .devcontainer
+      args:
+        ROS_DISTRO: jazzy
+        USER_UID: ${USER_UID:-1000}
+    volumes:
+      - ./py_packages:/opt/workspace/py_packages
+      - ./ros2_ws/src:/opt/workspace/ros2_ws/src
+      - ./datasets:/opt/workspace/datasets
+      - ./scripts:/opt/workspace/scripts:ro
+      # Submodule .git files point to <repo>/.git/modules/...; this keeps git usable in the container.
+      - ./.git/modules:/opt/workspace/.git/modules
+      - jazzy_build:/opt/workspace/ros2_ws/build
+      - jazzy_install:/opt/workspace/ros2_ws/install
+      - jazzy_log:/opt/workspace/ros2_ws/log
+
+  lyrical:
+    <<: *ros
+    image: ros_container:lyrical
+    build:
+      context: .devcontainer
+      args:
+        ROS_DISTRO: lyrical
+        USER_UID: ${USER_UID:-1000}
+    volumes:
+      - ./py_packages:/opt/workspace/py_packages
+      - ./ros2_ws/src:/opt/workspace/ros2_ws/src
+      - ./datasets:/opt/workspace/datasets
+      - ./scripts:/opt/workspace/scripts:ro
+      # Submodule .git files point to <repo>/.git/modules/...; this keeps git usable in the container.
+      - ./.git/modules:/opt/workspace/.git/modules
+      - lyrical_build:/opt/workspace/ros2_ws/build
+      - lyrical_install:/opt/workspace/ros2_ws/install
+      - lyrical_log:/opt/workspace/ros2_ws/log
+
+volumes:
+  jazzy_build:
+  jazzy_install:
+  jazzy_log:
+  lyrical_build:
+  lyrical_install:
+  lyrical_log:

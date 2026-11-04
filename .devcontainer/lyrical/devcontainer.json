@@ -1,0 +1,27 @@
+{
+  "name": "ROS Lyrical",
+  "dockerComposeFile": ["../../compose.yaml"],
+  "service": "lyrical",
+  "runServices": ["lyrical"],
+  "workspaceFolder": "/opt/workspace",
+  "shutdownAction": "stopCompose",
+  "initializeCommand": "bash .devcontainer/pre_build.sh",
+  "postCreateCommand": "/opt/workspace/scripts/setup_workspace.sh",
+  "remoteUser": "ubuntu",
+  "forwardPorts": [8765],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-iot.vscode-ros",
+        "ms-vscode.cmake-tools",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "python.analysis.extraPaths": [
+          "/opt/ros/lyrical/lib/python3/dist-packages"
+        ]
+      }
+    }
+  }
+}
