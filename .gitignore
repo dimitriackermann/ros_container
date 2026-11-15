@@ -5,3 +5,6 @@ __pycache__/
 # recorded bags stay local
 datasets/*
 !datasets/.gitkeep
+
+# IDE state
+.idea/

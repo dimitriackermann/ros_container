@@ -1,6 +1,6 @@
 {
     "python.terminal.useEnvFile": true,
-    "cmake.sourceDirectory": "/Users/dimitri/Code/ros_container/ros2_ws/src/num_interfaces",
+    "cmake.sourceDirectory": "${workspaceFolder}/ros2_ws/src/num_interfaces",
     // ROS env for the Test Explorer and test debugging (written by the "ros: debug env" task)
     "python.envFile": "/opt/workspace/ros2_ws/install/debug.env",
     "python.testing.pytestEnabled": true,
