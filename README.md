@@ -33,10 +33,10 @@ Inside the container:
 ## Clone
 
 ```bash
-git clone --recursive https://github.com/ros-nodes/ros_container.git
+git clone --recursive https://github.com/dimitriackermann/ros_container.git
 ```
 
-Submodule URLs are relative (`../num_add.git`, …), so they follow the protocol of the main clone — use `git@github.com:ros-nodes/ros_container.git` to clone everything over SSH. Each package also lives in its own repo in the [ros-nodes](https://github.com/ros-nodes) organization.
+Submodule URLs are relative (`../num_add.git`, …), so they follow the protocol of the main clone — use `git@github.com:dimitriackermann/ros_container.git` to clone everything over SSH. Each package also lives in its own repo under the same account.
 
 ## Start: VS Code
 
