@@ -33,14 +33,10 @@ Inside the container:
 ## Clone
 
 ```bash
-git clone --recursive <url>
+git clone --recursive https://github.com/dimitriackermann/ros_container.git
 ```
 
-While the submodules still point at local bare repos in `../ros_container_repos`, clone with `git -c protocol.file.allow=always clone --recursive …`. Move them to real remotes with:
-
-```bash
-git submodule set-url py_packages/num_add git@github.com:<you>/num_add.git
-```
+Submodule URLs are relative (`../num_add.git`, …), so they follow the protocol of the main clone — use `git@github.com:dimitriackermann/ros_container.git` to clone everything over SSH. Each package also lives in its own repo under the same account.
 
 ## Start: VS Code
 

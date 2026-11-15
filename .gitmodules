@@ -1,18 +1,18 @@
 [submodule "py_packages/num_add"]
 	path = py_packages/num_add
-	url = /Users/dimitri/Code/ros_container_repos/num_add.git
+	url = ../num_add.git
 [submodule "py_packages/num_sub"]
 	path = py_packages/num_sub
-	url = /Users/dimitri/Code/ros_container_repos/num_sub.git
+	url = ../num_sub.git
 [submodule "ros2_ws/src/num_interfaces"]
 	path = ros2_ws/src/num_interfaces
-	url = /Users/dimitri/Code/ros_container_repos/num_interfaces.git
+	url = ../num_interfaces.git
 [submodule "ros2_ws/src/num_nodes"]
 	path = ros2_ws/src/num_nodes
-	url = /Users/dimitri/Code/ros_container_repos/num_nodes.git
+	url = ../num_nodes.git
 [submodule "ros2_ws/src/bag_tools"]
 	path = ros2_ws/src/bag_tools
-	url = /Users/dimitri/Code/ros_container_repos/bag_tools.git
+	url = ../bag_tools.git
 [submodule "ros2_ws/src/num_bringup"]
 	path = ros2_ws/src/num_bringup
-	url = /Users/dimitri/Code/ros_container_repos/num_bringup.git
+	url = ../num_bringup.git
