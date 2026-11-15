@@ -25,18 +25,23 @@ RUN if [ "${USER_UID}" != "$(id -u ${USERNAME})" ]; then usermod -u ${USER_UID} 
     && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} \
     && chmod 0440 /etc/sudoers.d/${USERNAME}
 
-# Named volumes for build/install/log are initialised from these dirs, so they get the
+# Named volumes for build/install/log and ~/.local (pip --user) are initialised from these dirs, so they get the
 # right owner on first use.
 RUN mkdir -p ${WORKSPACE}/py_packages ${WORKSPACE}/datasets \
         ${WORKSPACE}/ros2_ws/src ${WORKSPACE}/ros2_ws/build \
         ${WORKSPACE}/ros2_ws/install ${WORKSPACE}/ros2_ws/log \
-    && chown -R ${USERNAME} ${WORKSPACE}
+        /home/${USERNAME}/.local \
+    && chown -R ${USERNAME} ${WORKSPACE} /home/${USERNAME}/.local
 
 RUN printf '%s\n' \
         "source /opt/ros/${ROS_DISTRO}/setup.bash" \
         "[ -f ${WORKSPACE}/ros2_ws/install/setup.bash ] && source ${WORKSPACE}/ros2_ws/install/setup.bash" \
         "PS1='(${ROS_DISTRO}) \\w \\$ '" \
         >> /home/${USERNAME}/.bashrc
+
+# Sources ROS + workspace overlay before running any command (entrypoint and `ros_exec ...`)
+COPY --chmod=755 ros_exec.sh /usr/local/bin/ros_exec
+ENTRYPOINT ["/usr/local/bin/ros_exec"]
 
 USER ${USERNAME}
 WORKDIR ${WORKSPACE}

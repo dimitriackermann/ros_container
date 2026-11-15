@@ -1,0 +1,20 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "ros: debug env",
+            "type": "shell",
+            "command": "/opt/workspace/scripts/ros_debug_env.sh",
+            "presentation": { "reveal": "silent" },
+            "problemMatcher": []
+        },
+        {
+            "label": "colcon build",
+            "type": "shell",
+            "command": "source /opt/ros/$ROS_DISTRO/setup.bash && colcon build --symlink-install",
+            "options": { "cwd": "/opt/workspace/ros2_ws", "shell": { "executable": "/bin/bash", "args": ["-c"] } },
+            "group": { "kind": "build", "isDefault": true },
+            "problemMatcher": []
+        }
+    ]
+}

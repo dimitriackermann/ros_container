@@ -1,15 +1,44 @@
 # One service per ROS distro. Both share the sources and datasets but have their own
 # image and their own build/install/log volumes, so switching distro never mixes builds.
 # Used by the devcontainers (.devcontainer/<distro>/devcontainer.json) and the Makefile.
+# The image entrypoint (ros_exec) sources ROS and the workspace overlay for every command.
+#
+# The "live" and "offline" services (profiles) run a launch file as their main process.
+# They reuse the image, volumes, network and IPC of the distro container D (default jazzy),
+# so the build is shared and DDS discovery / shared memory work as on one machine:
+#   D=jazzy docker compose --profile live up      (or: make live)
 name: ros_container
 
 x-ros: &ros
   command: sleep infinity
   init: true
+  ipc: shareable    # lets the live/offline containers join this IPC namespace
   ports:
     - "8765:8765"   # Foxglove bridge
 
+x-launch: &launch
+  image: ros_container:${D:-jazzy}
+  init: true
+  volumes_from: ["${D:-jazzy}"]           # sources, datasets and the build/install volumes
+  network_mode: "service:${D:-jazzy}"     # same localhost; port 8765 is published by D
+  ipc: "service:${D:-jazzy}"              # same /dev/shm for the DDS shared-memory transport
+  stop_signal: SIGINT                     # ros2 launch shuts its nodes down cleanly on SIGINT
+  stop_grace_period: 15s
+  environment:
+    PYTHONUNBUFFERED: "1"
+    RCUTILS_COLORIZED_OUTPUT: "1"
+
 services:
+  live:
+    <<: *launch
+    profiles: [live]
+    command: ros2 launch num_bringup live.launch.py
+
+  offline:
+    <<: *launch
+    profiles: [offline]
+    command: ros2 launch num_bringup offline.launch.py
+
   jazzy:
     <<: *ros
     image: ros_container:jazzy
@@ -23,11 +52,13 @@ services:
       - ./ros2_ws/src:/opt/workspace/ros2_ws/src
       - ./datasets:/opt/workspace/datasets
       - ./scripts:/opt/workspace/scripts:ro
+      - ./.vscode:/opt/workspace/.vscode   # launch.json / tasks.json for debugging
       # Submodule .git files point to <repo>/.git/modules/...; this keeps git usable in the container.
       - ./.git/modules:/opt/workspace/.git/modules
       - jazzy_build:/opt/workspace/ros2_ws/build
       - jazzy_install:/opt/workspace/ros2_ws/install
       - jazzy_log:/opt/workspace/ros2_ws/log
+      - jazzy_local:/home/ubuntu/.local       # pip --user installs (py_packages), shared with live/offline
 
   lyrical:
     <<: *ros
@@ -42,16 +73,20 @@ services:
       - ./ros2_ws/src:/opt/workspace/ros2_ws/src
       - ./datasets:/opt/workspace/datasets
       - ./scripts:/opt/workspace/scripts:ro
+      - ./.vscode:/opt/workspace/.vscode   # launch.json / tasks.json for debugging
       # Submodule .git files point to <repo>/.git/modules/...; this keeps git usable in the container.
       - ./.git/modules:/opt/workspace/.git/modules
       - lyrical_build:/opt/workspace/ros2_ws/build
       - lyrical_install:/opt/workspace/ros2_ws/install
       - lyrical_log:/opt/workspace/ros2_ws/log
+      - lyrical_local:/home/ubuntu/.local       # pip --user installs (py_packages), shared with live/offline
 
 volumes:
   jazzy_build:
   jazzy_install:
   jazzy_log:
+  jazzy_local:
   lyrical_build:
   lyrical_install:
   lyrical_log:
+  lyrical_local:

@@ -1,0 +1,50 @@
+{
+    // Use inside the dev container. The "ros: debug env" task writes the ROS environment first.
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ROS: debug node",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "/opt/workspace/ros2_ws/install/${input:node}",
+            // e.g. ["--ros-args", "-p", "rate_hz:=5.0"]
+            "args": [],
+            "envFile": "/opt/workspace/ros2_ws/install/debug.env",
+            "preLaunchTask": "ros: debug env",
+            "console": "integratedTerminal",
+            "justMyCode": true
+        },
+        {
+            "name": "Python: current file (ROS env)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "envFile": "/opt/workspace/ros2_ws/install/debug.env",
+            "preLaunchTask": "ros: debug env",
+            "console": "integratedTerminal"
+        },
+        {
+            // Attach to a node started with: python3 -m debugpy --listen 5678 --wait-for-client ...
+            "name": "ROS: attach to node (port 5678)",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": { "host": "localhost", "port": 5678 },
+            "justMyCode": true
+        }
+    ],
+    "inputs": [
+        {
+            "id": "node",
+            "type": "pickString",
+            "description": "Node to debug",
+            "options": [
+                { "label": "num_nodes counter_pub", "value": "num_nodes/lib/num_nodes/counter_pub" },
+                { "label": "num_nodes counter_sub", "value": "num_nodes/lib/num_nodes/counter_sub" },
+                { "label": "num_nodes calc_server", "value": "num_nodes/lib/num_nodes/calc_server" },
+                { "label": "num_nodes calc_client", "value": "num_nodes/lib/num_nodes/calc_client" },
+                { "label": "bag_tools bag_recorder", "value": "bag_tools/lib/bag_tools/bag_recorder" },
+                { "label": "bag_tools bag_player", "value": "bag_tools/lib/bag_tools/bag_player" }
+            ]
+        }
+    ]
+}

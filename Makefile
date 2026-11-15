@@ -11,21 +11,23 @@ LOOP ?= false
 COMPOSE := docker compose
 # Allocate a TTY only when make itself runs in a terminal (so Ctrl-C reaches ros2 in the container)
 EXEC := $(COMPOSE) exec $(if $(shell [ -t 0 ] && echo tty),,-T)
-RUNNING = $(shell $(COMPOSE) ps --services --status running 2>/dev/null)
+RUNNING = $(filter jazzy lyrical,$(shell $(COMPOSE) ps --services --status running 2>/dev/null))
 # Service to exec into: explicit D on the command line wins, otherwise the running one.
 SVC = $(if $(filter command line,$(origin D)),$(D),$(RUNNING))
-# Run a command in the container with ROS and the workspace overlay sourced.
-ROS = $(EXEC) $(SVC) bash -c 'source /opt/ros/$$ROS_DISTRO/setup.bash && \
-      source ros2_ws/install/setup.bash && exec "$$0" "$$@"'
+# Run a command in the container with ROS and the workspace overlay sourced (see ros_exec).
+ROS = $(EXEC) $(SVC) ros_exec
+# Launch services (live/offline) attach to the distro container SVC.
+LAUNCH = D=$(SVC) $(COMPOSE) --profile $(1) up $(if $(BG),-d) $(1)
 
-.PHONY: help build up down rebuild shell live offline record replay bags test clean check-svc
+.PHONY: help build up down rebuild shell live offline logs record replay bags test clean check-svc
 
 help:
 	@echo "make build [D=jazzy|lyrical]   build the image"
 	@echo "make up    [D=jazzy|lyrical]   start the container and build the workspace"
 	@echo "make down                      stop containers"
-	@echo "make live                      run live.launch.py (foreground, Ctrl-C stops)"
-	@echo "make offline                   run offline.launch.py (foreground, Ctrl-C stops)"
+	@echo "make live    [BG=1]            run live.launch.py as the 'live' service (Ctrl-C stops)"
+	@echo "make offline [BG=1]            run offline.launch.py as the 'offline' service"
+	@echo "                               BG=1: run detached; 'make logs' follows, 'make down' stops"
 	@echo "make record NAME=run1 [DURATION=30] [TOPICS='/counter /add_result']"
 	@echo "                               record into datasets/; without DURATION: Ctrl-C stops"
 	@echo "make bags                      list recorded bags"
@@ -42,7 +44,7 @@ up:
 	$(EXEC) $(D) /opt/workspace/scripts/setup_workspace.sh
 
 down:
-	$(COMPOSE) down
+	$(COMPOSE) --profile '*' down
 
 check-svc:
 	@test -n "$(SVC)" || { echo "No container running: run 'make up [D=jazzy|lyrical]' first"; exit 1; }
@@ -54,11 +56,11 @@ shell: check-svc
 rebuild: check-svc
 	$(EXEC) $(SVC) /opt/workspace/scripts/setup_workspace.sh --force
 
-live: check-svc
-	$(ROS) ros2 launch num_bringup live.launch.py
+live offline: check-svc
+	$(call LAUNCH,$@)
 
-offline: check-svc
-	$(ROS) ros2 launch num_bringup offline.launch.py
+logs:
+	$(COMPOSE) --profile '*' logs -f live offline
 
 record: check-svc
 	$(ROS) ros2 action send_goal --feedback /bag_recorder/record num_interfaces/action/Record \
@@ -74,10 +76,10 @@ bags:
 
 test: check-svc
 	$(ROS) python3 -m pytest -q py_packages
-	$(EXEC) -w /opt/workspace/ros2_ws $(SVC) bash -c 'source install/setup.bash && \
-		colcon test && colcon test-result --verbose'
+	$(EXEC) -w /opt/workspace/ros2_ws $(SVC) ros_exec bash -c \
+		'colcon test && colcon test-result --verbose'
 
-# Remove the build/install/log volumes of distro D (forces a clean colcon build on next up)
+# Remove the build/install/log/.local volumes of distro D (forces a clean colcon build on next up)
 clean:
-	$(COMPOSE) rm -sf $(D)
-	docker volume rm -f ros_container_$(D)_build ros_container_$(D)_install ros_container_$(D)_log
+	D=$(D) $(COMPOSE) --profile '*' rm -sf live offline $(D)
+	docker volume rm -f ros_container_$(D)_build ros_container_$(D)_install ros_container_$(D)_log ros_container_$(D)_local

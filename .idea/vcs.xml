@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/py_packages/num_add" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/py_packages/num_sub" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ros2_ws/src/bag_tools" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ros2_ws/src/num_bringup" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ros2_ws/src/num_interfaces" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/ros2_ws/src/num_nodes" vcs="Git" />
+  </component>
+</project>
