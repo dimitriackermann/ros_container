@@ -3,12 +3,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            // Pick a node; it runs with the parameters listed in inputs.node below
+            // (edit the values there). scripts/debug_node.py runs the installed node in-process.
             "name": "ROS: debug node",
             "type": "debugpy",
             "request": "launch",
-            "program": "/opt/workspace/ros2_ws/install/${input:node}",
-            // e.g. ["--ros-args", "-p", "rate_hz:=5.0"]
-            "args": [],
+            "program": "/opt/workspace/scripts/debug_node.py",
+            "args": ["${input:node}"],
             "envFile": "/opt/workspace/ros2_ws/install/debug.env",
             "preLaunchTask": "ros: debug env",
             "console": "integratedTerminal",
@@ -34,16 +35,23 @@
     ],
     "inputs": [
         {
+            // value: "<package> <executable> --ros-args -p <param>:=<value> ..."
             "id": "node",
             "type": "pickString",
-            "description": "Node to debug",
+            "description": "Node to debug (with its parameters)",
             "options": [
-                { "label": "num_nodes counter_pub", "value": "num_nodes/lib/num_nodes/counter_pub" },
-                { "label": "num_nodes counter_sub", "value": "num_nodes/lib/num_nodes/counter_sub" },
-                { "label": "num_nodes calc_server", "value": "num_nodes/lib/num_nodes/calc_server" },
-                { "label": "num_nodes calc_client", "value": "num_nodes/lib/num_nodes/calc_client" },
-                { "label": "bag_tools bag_recorder", "value": "bag_tools/lib/bag_tools/bag_recorder" },
-                { "label": "bag_tools bag_player", "value": "bag_tools/lib/bag_tools/bag_player" }
+                { "label": "counter_pub   rate_hz:=1.0",
+                  "value": "num_nodes counter_pub --ros-args -p rate_hz:=1.0" },
+                { "label": "counter_sub   log_every:=1",
+                  "value": "num_nodes counter_sub --ros-args -p log_every:=1" },
+                { "label": "calc_server   introspection:=true",
+                  "value": "num_nodes calc_server --ros-args -p introspection:=true" },
+                { "label": "calc_client   operand:=1.0",
+                  "value": "num_nodes calc_client --ros-args -p operand:=1.0" },
+                { "label": "bag_recorder  datasets_dir:=/opt/workspace/datasets",
+                  "value": "bag_tools bag_recorder --ros-args -p datasets_dir:=/opt/workspace/datasets" },
+                { "label": "bag_player    datasets_dir:=/opt/workspace/datasets",
+                  "value": "bag_tools bag_player --ros-args -p datasets_dir:=/opt/workspace/datasets" }
             ]
         }
     ]
