@@ -8,7 +8,6 @@
   "initializeCommand": "bash .devcontainer/pre_build.sh",
   "postCreateCommand": "/opt/workspace/scripts/setup_workspace.sh",
   "remoteUser": "ubuntu",
-  "forwardPorts": [8765],
   "customizations": {
     "vscode": {
       "extensions": [

@@ -1,0 +1,25 @@
+# Template for the per-distro services in ../compose.yaml (pulled in with `extends`, which merges
+# volumes by target path and environment by key). Relative paths resolve against THIS file.
+services:
+  ros:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+      target: dev
+      args:
+        USER_UID: ${USER_UID:-1000}
+    command: sleep infinity
+    init: true
+    ipc: shareable    # lets the live/offline containers join this IPC namespace
+    shm_size: 512m    # /dev/shm for the DDS shared-memory transport (default 64 MB)
+    environment:
+      ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+      ROS_AUTOMATIC_DISCOVERY_RANGE: ${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}
+    volumes:
+      - ../py_packages:/opt/workspace/py_packages
+      - ../ros2_ws/src:/opt/workspace/ros2_ws/src
+      - ../datasets:/opt/workspace/datasets
+      - ../scripts:/opt/workspace/scripts:ro
+      - ../.vscode:/opt/workspace/.vscode   # launch.json / tasks.json for debugging
+      # Submodule .git files point to <repo>/.git/modules/...; this keeps git usable in the container.
+      - ../.git/modules:/opt/workspace/.git/modules

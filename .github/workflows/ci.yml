@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.distro }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [jazzy, lyrical]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: docker/setup-buildx-action@v3
+      # Exposes ACTIONS_RUNTIME_TOKEN / ACTIONS_CACHE_URL so `docker compose build` can use type=gha
+      - uses: crazy-max/ghaction-github-runtime@v3
+
+      # Same image as the devcontainer (Dockerfile target "dev", pinned base from compose.yaml),
+      # with BuildKit layers cached in the GitHub Actions cache.
+      - name: Build dev image
+        run: |
+          cat > ci-cache.override.yaml <<EOF
+          services:
+            ${{ matrix.distro }}:
+              build:
+                cache_from: ["type=gha,scope=${{ matrix.distro }}"]
+                cache_to: ["type=gha,mode=max,scope=${{ matrix.distro }}"]
+          EOF
+          docker compose -f compose.yaml -f ci-cache.override.yaml build ${{ matrix.distro }}
+        env:
+          USER_UID: "1001"   # the runner user, so the container can write the bind mounts
+
+      - name: Start container and build workspace
+        env:
+          USER_UID: "1001"
+        run: |
+          mkdir -p datasets
+          docker compose up -d ${{ matrix.distro }}
+          docker compose exec -T ${{ matrix.distro }} /opt/workspace/scripts/setup_workspace.sh
+
+      - name: pytest (py_packages)
+        run: docker compose exec -T ${{ matrix.distro }} ros_exec python3 -m pytest -q py_packages
+
+      - name: colcon test (ros2_ws)
+        run: >
+          docker compose exec -T -w /opt/workspace/ros2_ws ${{ matrix.distro }}
+          ros_exec bash -c 'colcon test --event-handlers console_direct+ && colcon test-result --verbose'
+
+      - name: Build runtime image
+        run: D=${{ matrix.distro }} docker compose --profile runtime build runtime
+
+      - name: Smoke-test runtime image
+        run: >
+          docker run --rm ros_container:${{ matrix.distro }}-runtime
+          bash -c 'ros2 pkg list | grep -x num_bringup && python3 -c "import num_add, num_sub"'
+
+      - name: Shut down
+        if: always()
+        run: docker compose down

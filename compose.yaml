@@ -1,7 +1,12 @@
-# One service per ROS distro. Both share the sources and datasets but have their own
-# image and their own build/install/log volumes, so switching distro never mixes builds.
+# One service per ROS distro. Both share the sources and datasets (template:
+# .devcontainer/compose.ros.yaml) but have their own image, build/install/log volumes and
+# Foxglove port, so switching distro never mixes builds and both can run at once.
 # Used by the devcontainers (.devcontainer/<distro>/devcontainer.json) and the Makefile.
 # The image entrypoint (ros_exec) sources ROS and the workspace overlay for every command.
+#
+# Overridable from the shell or .env: ROS_DOMAIN_ID (0), ROS_AUTOMATIC_DISCOVERY_RANGE
+# (LOCALHOST; SUBNET to reach other machines), JAZZY_FOXGLOVE_PORT (8765), LYRICAL_FOXGLOVE_PORT (8766),
+# RUNTIME_FOXGLOVE_PORT (8767).
 #
 # The "live" and "offline" services (profiles) run a launch file as their main process.
 # They reuse the image, volumes, network and IPC of the distro container D (default jazzy),
@@ -9,24 +14,22 @@
 #   D=jazzy docker compose --profile live up      (or: make live)
 name: ros_container
 
-x-ros: &ros
-  command: sleep infinity
-  init: true
-  ipc: shareable    # lets the live/offline containers join this IPC namespace
-  ports:
-    - "8765:8765"   # Foxglove bridge
-
 x-launch: &launch
   image: ros_container:${D:-jazzy}
   init: true
   volumes_from: ["${D:-jazzy}"]           # sources, datasets and the build/install volumes
-  network_mode: "service:${D:-jazzy}"     # same localhost; port 8765 is published by D
+  network_mode: "service:${D:-jazzy}"     # same localhost; the Foxglove port is published by D
   ipc: "service:${D:-jazzy}"              # same /dev/shm for the DDS shared-memory transport
   stop_signal: SIGINT                     # ros2 launch shuts its nodes down cleanly on SIGINT
   stop_grace_period: 15s
   environment:
     PYTHONUNBUFFERED: "1"
     RCUTILS_COLORIZED_OUTPUT: "1"
+    ROS_DOMAIN_ID: ${ROS_DOMAIN_ID:-0}
+    ROS_AUTOMATIC_DISCOVERY_RANGE: ${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}
+  logging:                                # bounded logs for long detached runs
+    driver: json-file
+    options: {max-size: 10m, max-file: "3"}
 
 services:
   live:
@@ -39,47 +42,57 @@ services:
     profiles: [offline]
     command: ros2 launch num_bringup offline.launch.py
 
+  # Self-contained image (Dockerfile target "runtime") for distro D, built with the same pinned base:
+  #   make runtime [D=lyrical]   ->  ros_container:<D>-runtime
+  # Runs the live launch with only a datasets mount; nothing from the dev volumes.
+  runtime:
+    extends: {service: "${D:-jazzy}"}
+    profiles: [runtime]
+    image: ros_container:${D:-jazzy}-runtime
+    build: {target: runtime}
+    command: !reset null
+    ipc: !reset null
+    volumes: !override
+      - ./datasets:/opt/workspace/datasets
+    ports: !override
+      - "${RUNTIME_FOXGLOVE_PORT:-8767}:8765"
+    stop_signal: SIGINT
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}
+
   jazzy:
-    <<: *ros
+    extends: {file: .devcontainer/compose.ros.yaml, service: ros}
     image: ros_container:jazzy
     build:
-      context: .devcontainer
       args:
         ROS_DISTRO: jazzy
-        USER_UID: ${USER_UID:-1000}
+        # pinned for reproducible builds; refresh with: docker buildx imagetools inspect ros:jazzy-ros-base
+        BASE_IMAGE: ros:jazzy-ros-base@sha256:00b8d47a6e6384a2834e3d01fa87ae767876543baa574f2d64a75c04ea33c698
+        RUNTIME_BASE_IMAGE: ros:jazzy-ros-core@sha256:917946da96cc72b2611134a6597f7c61bda5b5da69b150a4696cf8c195a779f4
+    ports:
+      - "${JAZZY_FOXGLOVE_PORT:-8765}:8765"
     volumes:
-      - ./py_packages:/opt/workspace/py_packages
-      - ./ros2_ws/src:/opt/workspace/ros2_ws/src
-      - ./datasets:/opt/workspace/datasets
-      - ./scripts:/opt/workspace/scripts:ro
-      - ./.vscode:/opt/workspace/.vscode   # launch.json / tasks.json for debugging
-      # Submodule .git files point to <repo>/.git/modules/...; this keeps git usable in the container.
-      - ./.git/modules:/opt/workspace/.git/modules
       - jazzy_build:/opt/workspace/ros2_ws/build
       - jazzy_install:/opt/workspace/ros2_ws/install
       - jazzy_log:/opt/workspace/ros2_ws/log
       - jazzy_local:/home/ubuntu/.local       # pip --user installs (py_packages), shared with live/offline
 
   lyrical:
-    <<: *ros
+    extends: {file: .devcontainer/compose.ros.yaml, service: ros}
     image: ros_container:lyrical
     build:
-      context: .devcontainer
       args:
         ROS_DISTRO: lyrical
-        USER_UID: ${USER_UID:-1000}
+        BASE_IMAGE: ros:lyrical-ros-base@sha256:c69a7a39142b0a19c8cc5e80a35e9087e2ae46080dfa0a59961ff72287fdc5f6
+        RUNTIME_BASE_IMAGE: ros:lyrical-ros-core@sha256:748f9a572881c3af47f2f98750d57c1b548a8a3311a0e52dae8d61deff09820c
+    ports:
+      - "${LYRICAL_FOXGLOVE_PORT:-8766}:8765"
     volumes:
-      - ./py_packages:/opt/workspace/py_packages
-      - ./ros2_ws/src:/opt/workspace/ros2_ws/src
-      - ./datasets:/opt/workspace/datasets
-      - ./scripts:/opt/workspace/scripts:ro
-      - ./.vscode:/opt/workspace/.vscode   # launch.json / tasks.json for debugging
-      # Submodule .git files point to <repo>/.git/modules/...; this keeps git usable in the container.
-      - ./.git/modules:/opt/workspace/.git/modules
       - lyrical_build:/opt/workspace/ros2_ws/build
       - lyrical_install:/opt/workspace/ros2_ws/install
       - lyrical_log:/opt/workspace/ros2_ws/log
-      - lyrical_local:/home/ubuntu/.local       # pip --user installs (py_packages), shared with live/offline
+      - lyrical_local:/home/ubuntu/.local
 
 volumes:
   jazzy_build:

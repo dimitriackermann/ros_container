@@ -19,7 +19,7 @@ ROS = $(EXEC) $(SVC) ros_exec
 # Launch services (live/offline) attach to the distro container SVC.
 LAUNCH = D=$(SVC) $(COMPOSE) --profile $(1) up $(if $(BG),-d) $(1)
 
-.PHONY: help build up down rebuild shell live offline logs record replay bags test clean check-svc
+.PHONY: help build up down rebuild shell live offline logs record replay bags test clean check-svc runtime runtime-up
 
 help:
 	@echo "make build [D=jazzy|lyrical]   build the image"
@@ -33,6 +33,8 @@ help:
 	@echo "make bags                      list recorded bags"
 	@echo "make replay BAG=<folder> [RATE=1.0] [LOOP=true]"
 	@echo "make shell | test | rebuild | clean"
+	@echo "make runtime    [D=jazzy|lyrical]  build the self-contained image ros_container:<D>-runtime"
+	@echo "make runtime-up [D=...] [BG=1]     run it (live launch, Foxglove on :8767, datasets/ mounted)"
 
 build:
 	@bash .devcontainer/pre_build.sh
@@ -60,7 +62,7 @@ live offline: check-svc
 	$(call LAUNCH,$@)
 
 logs:
-	$(COMPOSE) --profile '*' logs -f live offline
+	$(COMPOSE) --profile '*' logs -f live offline runtime
 
 record: check-svc
 	$(ROS) ros2 action send_goal --feedback /bag_recorder/record num_interfaces/action/Record \
@@ -83,3 +85,11 @@ test: check-svc
 clean:
 	D=$(D) $(COMPOSE) --profile '*' rm -sf live offline $(D)
 	docker volume rm -f ros_container_$(D)_build ros_container_$(D)_install ros_container_$(D)_log ros_container_$(D)_local
+
+# Self-contained image: install space + exec deps only (Dockerfile target "runtime")
+runtime:
+	@bash .devcontainer/pre_build.sh
+	D=$(D) $(COMPOSE) --profile runtime build runtime
+
+runtime-up:
+	D=$(D) $(COMPOSE) --profile runtime up $(if $(BG),-d) runtime

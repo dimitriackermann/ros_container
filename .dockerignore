@@ -1,0 +1,13 @@
+# Build context is the repo root; send only what the Dockerfile copies.
+*
+!.devcontainer/ros_exec.sh
+!ros2_ws/src
+!py_packages
+
+# Submodule .git files, caches and local build output
+**/.git
+**/__pycache__
+**/*.egg-info
+**/.pytest_cache
+**/build
+**/dist

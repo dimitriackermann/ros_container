@@ -22,10 +22,15 @@ done
 
 echo "== ROS workspace (${WS}/ros2_ws)"
 cd "${WS}/ros2_ws"
-if [ "${FORCE}" = 1 ] || [ ! -f install/setup.bash ]; then
+# The image bakes in the rosdep deps of the package.xml files it was built from. Check every time
+# (fast, offline) so a dependency added since then is installed even when the build is skipped.
+if [ "${FORCE}" = 1 ] || ! rosdep check --from-paths src --ignore-src -q >/dev/null 2>&1; then
+    echo "installing missing rosdep dependencies (rebuild the image to bake them in)"
     sudo apt-get update -qq
     rosdep update --rosdistro "${ROS_DISTRO}" -q
     rosdep install --from-paths src --ignore-src -y -q
+fi
+if [ "${FORCE}" = 1 ] || [ ! -f install/setup.bash ]; then
     colcon build --symlink-install
 else
     echo "install/ exists, skipping colcon build (use --force or 'colcon build' to rebuild)"
