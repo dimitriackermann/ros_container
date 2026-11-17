@@ -7,7 +7,6 @@ ARG USER_UID=1000
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PIP_BREAK_SYSTEM_PACKAGES=1 \
-    ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST \
     WORKSPACE=/opt/workspace \
     DATASETS_DIR=/opt/workspace/datasets
 

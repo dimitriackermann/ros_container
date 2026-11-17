@@ -1,0 +1,27 @@
+name: ROS workspace
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [jazzy, lyrical]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Build and start workspace
+        run: make up D=${{ matrix.distro }}
+      - name: Run tests
+        run: make test D=${{ matrix.distro }}
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose --profile '*' logs
+      - name: Clean up
+        if: always()
+        run: docker compose --profile '*' down --volumes

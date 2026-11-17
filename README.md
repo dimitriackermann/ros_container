@@ -42,12 +42,14 @@ Submodule URLs are relative (`../num_add.git`, …), so they follow the protocol
 
 1. Install the *Dev Containers* extension.
 2. Run **Dev Containers: Reopen in Container** and pick **ROS Jazzy** or **ROS Lyrical**.
-3. `initializeCommand` initialises the submodules and writes `.env` with your UID. `postCreateCommand` runs `scripts/setup_workspace.sh`, which does `pip install -e py_packages/*`, `rosdep` and `colcon build --symlink-install`.
+3. `initializeCommand` initialises missing submodules without changing existing checkouts and updates `USER_UID` in `.env`, preserving other entries. `postCreateCommand` runs `scripts/setup_workspace.sh`, which refreshes the editable Python installs, resolves dependencies with `rosdep`, and runs an incremental `colcon build --symlink-install`.
 4. To change distro, run **Dev Containers: Switch Container** (or Reopen in Container again).
 
 Run one distro at a time: both containers publish Foxglove on port 8765.
 
-Git works inside the container for the submodules, because `.git/modules` is mounted. Run git commands for the main repo on the host.
+ROS discovery defaults to `LOCALHOST`. The launch services share the distro container’s network and IPC namespaces, so they can discover each other there. For communication beyond that environment, set `ROS_AUTOMATIC_DISCOVERY_RANGE` in `.env` or the host environment and configure networking for your DDS implementation. Linux and Docker Desktop have different networking behavior; verify discovery on the intended host.
+
+Git works inside the container for the submodules, because `.git/modules` is mounted. Run git commands for the main repo on the host. Existing submodule checkouts are not reset during startup; to deliberately move them to the commits recorded by the parent repository, run `git submodule update --init --recursive` after checking for local work.
 
 ## Start: host only (Makefile)
 
@@ -115,8 +117,10 @@ Ways to call them:
 
 ```bash
 make test       # pytest for py_packages + colcon test
-make rebuild    # force pip reinstall + colcon build
+make rebuild    # reinstall editable Python packages, resolve dependencies and build
 make clean      # drop build/install/log volumes of D (default jazzy)
 ```
 
 `num_add` and `num_sub` are editable installs, and colcon uses `--symlink-install`, so most Python edits take effect without rebuilding. Restart the launch file to pick them up.
+
+The CI workflow builds and tests both distributions using fresh Docker volumes. `make up` also resolves dependencies and builds incrementally on every invocation, so changes to package manifests are picked up.

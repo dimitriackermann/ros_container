@@ -54,7 +54,7 @@ shell: check-svc
 	$(COMPOSE) exec $(SVC) bash
 
 rebuild: check-svc
-	$(EXEC) $(SVC) /opt/workspace/scripts/setup_workspace.sh --force
+	$(EXEC) $(SVC) /opt/workspace/scripts/setup_workspace.sh
 
 live offline: check-svc
 	$(call LAUNCH,$@)

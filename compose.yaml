@@ -13,6 +13,8 @@ x-ros: &ros
   command: sleep infinity
   init: true
   ipc: shareable    # lets the live/offline containers join this IPC namespace
+  environment:
+    ROS_AUTOMATIC_DISCOVERY_RANGE: ${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}
   ports:
     - "8765:8765"   # Foxglove bridge
 
@@ -25,6 +27,7 @@ x-launch: &launch
   stop_signal: SIGINT                     # ros2 launch shuts its nodes down cleanly on SIGINT
   stop_grace_period: 15s
   environment:
+    ROS_AUTOMATIC_DISCOVERY_RANGE: ${ROS_AUTOMATIC_DISCOVERY_RANGE:-LOCALHOST}
     PYTHONUNBUFFERED: "1"
     RCUTILS_COLORIZED_OUTPUT: "1"
 

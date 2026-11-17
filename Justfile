@@ -45,7 +45,7 @@ rebuild:
     #!/usr/bin/env bash
     set -euo pipefail
     s=$({{svc}})
-    {{exec}} "$s" /opt/workspace/scripts/setup_workspace.sh --force
+    {{exec}} "$s" /opt/workspace/scripts/setup_workspace.sh
 
 # Run live.launch.py as the 'live' service (Ctrl-C stops; pass -d to run detached)
 live *flags: (_launch "live" flags)
